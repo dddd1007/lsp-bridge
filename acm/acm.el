@@ -103,6 +103,7 @@
 (require 'acm-backend-tabnine)
 (require 'acm-backend-tailwind)
 (require 'acm-backend-citre)
+(require 'acm-backend-codeium)
 (require 'acm-quick-access)
 
 ;;; Code:
@@ -184,6 +185,7 @@
 (defcustom acm-completion-backend-merge-order '("mode-first-part-candidates"
                                                 "template-first-part-candidates"
                                                 "tabnine-candidates"
+                                                "codeium-candidates"
                                                 "template-second-part-candidates"
                                                 "mode-second-part-candidates")
   "The merge order for completion backend."
@@ -355,6 +357,7 @@ Only calculate template candidate when type last character."
          path-candidates
          yas-candidates
          tabnine-candidates
+         codeium-candidates
          tempel-candidates
          mode-candidates
          mode-first-part-candidates
@@ -366,6 +369,9 @@ Only calculate template candidate when type last character."
          citre-candidates)
     (when acm-enable-tabnine
       (setq tabnine-candidates (acm-backend-tabnine-candidates keyword)))
+
+    (when acm-enable-codeium
+      (setq codeium-candidates (acm-backend-codeium-candidates keyword)))
 
     (if acm-enable-search-sdcv-words
         ;; Completion SDCV if option `acm-enable-search-sdcv-words' is enable.
@@ -443,6 +449,7 @@ Only calculate template candidate when type last character."
                                                      ("mode-first-part-candidates" mode-first-part-candidates)
                                                      ("template-first-part-candidates" template-first-part-candidates)
                                                      ("tabnine-candidates" tabnine-candidates)
+                                                     ("codeium-candidates" codeium-candidates)
                                                      ("template-second-part-candidates" template-second-part-candidates)
                                                      ("mode-second-part-candidates" mode-second-part-candidates)
                                                      ))
@@ -1044,11 +1051,12 @@ The key of candidate will change between two LSP results."
     (setq acm-markdown-render-doc doc)))
 
 (defun acm-in-comment-p (&optional state)
-  (if (featurep 'treesit)
+  (if (and (featurep 'treesit) (treesit-parser-list))
       ;; Avoid use `acm-current-parse-state' when treesit is enable.
       ;; `beginning-of-defun' is very expensive function will slow down completion menu.
       ;; We use `treesit-node-type' directly if treesit is enable.
-      (string-equal (treesit-node-type (treesit-node-at (point))) "comment")
+      (or (eq (get-text-property (point) 'face) 'font-lock-comment-face)
+          (string-equal (treesit-node-type (treesit-node-at (point))) "comment"))
     (ignore-errors
       (unless (or (bobp) (eobp))
         (save-excursion
@@ -1058,11 +1066,12 @@ The key of candidate will change between two LSP results."
           )))))
 
 (defun acm-in-string-p (&optional state)
-  (if (featurep 'treesit)
+  (if (and (featurep 'treesit) (treesit-parser-list))
       ;; Avoid use `acm-current-parse-state' when treesit is enable.
       ;; `beginning-of-defun' is very expensive function will slow down completion menu.
       ;; We use `treesit-node-type' directly if treesit is enable.
-      (string-equal (treesit-node-type (treesit-node-at (point))) "string")
+      (or (eq (get-text-property (point) 'face) 'font-lock-string-face)
+          (string-equal (treesit-node-type (treesit-node-at (point))) "string"))
     (ignore-errors
       (unless (or (bobp) (eobp))
         (save-excursion

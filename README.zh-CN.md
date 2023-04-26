@@ -17,7 +17,11 @@ lsp-bridge 使用 Python 多线程技术在 Emacs 和 LSP 服务器之间构建�
 ## 安装
 
 1. 安装 Emacs 28 及以上版本
-2. 安装 Python 依赖: `pip3 install epc orjson sexpdata six paramiko` (orjson 是可选的， orjson 基于 Rust， 提供更快的 JSON 解析性能; paramiko 只有你需要远程编辑功能时才需要)
+2. 安装 Python 依赖: epc, orjson, sexpdata, six, paramiko, 请选择下面其中一种方式安装 Python 依赖
+- PyPy (我们强烈推荐用 PyPy 替代 CPython 以获得 5 倍的性能提升):
+`pypy3 -m pip install epc sexpdata six paramiko`
+- CPython:
+`pip3 install epc orjson sexpdata six paramiko` (orjson 是可选的， orjson 基于 Rust， 提供更快的 JSON 解析性能)
 3. 安装 Elisp 依赖:
 
 - [posframe](https://github.com/tumashu/posframe)
@@ -57,9 +61,9 @@ lsp-bridge 开箱即用， 安装好语言对应的[LSP 服务器](https://githu
 
 lsp-bridge 也可以对远程服务器的文件进行代码语法补全，效果与 VSCode 类似。在处理要求较高资源或运行环境配置较为复杂的大型复杂软件时，提供远程代码补全功能将非常有用。以下是配置远程代码补全的步骤：
 
-1. 在远程服务器上安装 lsp-bridge 和对应的 LSP Server。
-2. 启动 lsp-bridge 服务：python3 lsp-bridge/lsp_bridge.py。
-3. 使用命令`lsp-bridge-open-remote-file`打开远程文件，输入用户名、服务器 IP、SSH 端口(默认为: 22) 和文件路径，比如`user@ip:[ssh_port]/path/file`。
+1. 在远程服务器上安装 lsp-bridge 和对应的 LSP Server
+2. 启动 lsp-bridge 服务： `pypy3 lsp-bridge/lsp_bridge.py` (如果你用 CPython， 请使用 `python3 lsp-bridge/lsp_bridge.py`)
+3. 使用命令`lsp-bridge-open-remote-file`打开远程文件，输入用户名、服务器 IP、SSH 端口(默认为: 22) 和文件路径，比如`user@ip:[ssh_port]/path/file`
 
 一旦打开远程文件，`lsp-bridge`将自动显示代码补全菜单。`lsp-bridge` 远程补全的原理如下：
 
@@ -126,6 +130,7 @@ lsp-bridge 也可以对远程服务器的文件进行代码语法补全，效果
 ## LSP 服务器选项
 
 - `lsp-bridge-c-lsp-server`: C 语言的服务器，可以选择`clangd`或者`ccls`
+- `lsp-bridge-elixir-lsp-server`: Elixir 语言的服务器，可以选择`elixirLS`或者`lexical`
 - `lsp-bridge-python-lsp-server`: Python 语言的服务器，可以选择 `pyright`, `jedi`, `python-ms`, `pylsp`, `ruff`
 - `lsp-bridge-php-lsp-server`: PHP 语言的服务器，可以选择`intelephense`或者`phpactor`
 - `lsp-bridge-tex-lsp-server`: LaTeX 语言的服务器，可以选择`texlab`或者`digestif`
@@ -163,6 +168,7 @@ lsp-bridge 也可以对远程服务器的文件进行代码语法补全，效果
 - `acm-enable-icon`: 补全菜单是否显示图标, macOS 用户需要给 brew 命令增加选项 `--with-rsvg` 来安装 Emacs 才能显示 SVG 图片
 - `acm-enable-doc-markdown-render`: 对补全文档中的 Markdown 内容进行语法着色， 你可以选择`'async`, `t` 或者 `nil`. 当选择`'async` 时, lsp-bridge 会采用异步渲， 当选择 `t` 时, lsp-bridge 会采用同步渲染， 同步渲染会降低补全速度， 默认是 `async` 选项
 - `acm-enable-tabnine`: 是否打开 tabnine 补全支持，默认打开，打开后需要运行命令 `lsp-bridge-install-tabnine` 来安装 tabnine 后就可以使用了。 TabNine 会消耗巨大的 CPU， 导致你整个电脑都卡顿， 如果电脑性能不好， 不建议开启此选项
+- `acm-enable-codeium`: 是否打开 Codeium 补全支持，打开后需要运行命令 `lsp-bridge-install-update-codeium` 来安装 Codeium，再运行命令 `lsp-bridge-codeium-auth` 来获取 auth token 再运行命令 `lsp-bridge-codeium-input-auth-token` 获取 API Key 后就可以使用了。
 - `acm-enable-search-file-words`: 补全菜单是否显示打开文件的单词， 默认打开
 - `acm-enable-quick-access`: 是否在图标后面显示索引， 可以通过 Alt + Number 来快速选择候选词， 默认关闭
 - `acm-enable-yas`: yasnippet 补全，默认打开
@@ -171,6 +177,10 @@ lsp-bridge 也可以对远程服务器的文件进行代码语法补全，效果
 - `acm-candidate-match-function`: 补全菜单匹配算法， orderless-\* 开头的算法需要额外安装 [orderless](https://github.com/oantolin/orderless)
 - `acm-completion-backend-merge-order`: 补全后端的显示顺序， 默认是按照 LSP、 模板、 TabNine 顺序合并多个补全后端后， 再显示剩下的模板和 LSP 补全选项， 你可以根据你的需求调整补全后端合并顺序
 - `acm-backend-lsp-candidate-min-length`: LSP 补全最小的触发字符数, 默认是 0
+- `acm-backend-elisp-candidate-min-length`: Elisp 补全最小的触发字符数, 默认是 0
+- `acm-backend-yas-candidate-min-length`: YaSnippet 补全最小的触发字符数, 默认是 0
+- `acm-backend-search-file-words-candidate-min-length`: Search Words 补全最小的触发字符数, 默认是 0
+- `acm-backend-codeium-candidate-min-length`: Codeium 补全最小的触发字符数, 默认是 0
 - `acm-backend-lsp-enable-auto-import`: 支持自动导入， 默认打开
 - `acm-backend-lsp-candidate-max-length`: LSP 候选词最大长度， 一些语言参数较长， 可以适当增加这个选项的值以看清楚参数列表
 - `acm-backend-yas-candidates-number`: yasnippet 显示个数，默认 2 个
@@ -238,7 +248,7 @@ lsp-bridge 每种语言的服务器配置存储在[lsp-bridge/langserver](https:
 你需要安装每个编程语言对应的 LSP 服务器， lsp-bridge 才能提供代码补全服务。
 
 | LSP 服务器                                                                                         | 语言                                    | 备注                                                                                                                                                                                                                     |
-| :------------------------------------------------------------------------------------------------- | :-------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|:---------------------------------------------------------------------------------------------------|:----------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [clangd](https://github.com/clangd/clangd)                                                         | C, C++, Object-C                        | 需要在项目根目录配置好 compile_commands.json                                                                                                                                                                             |
 | [ccls](https://github.com/MaskRay/ccls)                                                            | C, C++, Object-C                        | `lsp-bridge-c-lsp-server` 设置成 `ccls`, 需要在项目根目录配置好 compile_commands.json                                                                                                                                    |
 | [pyright](https://github.com/microsoft/pyright)                                                    | Python                                  | `pip install pyright`, `lsp-bridge-python-lsp-server` 设置成 `pyright`, `pyright-background-analysis` 更快， 但是无法返回诊断信息                                                                                        |
@@ -249,6 +259,7 @@ lsp-bridge 每种语言的服务器配置存储在[lsp-bridge/langserver](https:
 | [solargraph](https://github.com/castwide/solargraph)                                               | Ruby                                    |                                                                                                                                                                                                                          |
 | [rust-analyzer](https://github.com/rust-lang/rust-analyzer)                                        | Rust                                    |                                                                                                                                                                                                                          |
 | [elixirLS](https://github.com/elixir-lsp/elixir-ls)                                                | Elixir                                  | 请确保导出 `elixir-ls` 目录到你系统的 PATH 路径                                                                                                                                                                          |
+| [lexical](https://github.com/lexical-lsp/lexical)                                                  | Elixir                                  | 请确保导出 `lexical` 目录到你系统的 PATH 路径，且 `lexical` 和被补全的项目使用同样版本的 erlang/elixir 编译                                                                                                              |
 | [gopls](https://github.com/golang/tools/tree/master/gopls)                                         | Go                                      | 确保安装 [go-mode](https://github.com/dominikh/go-mode.el)， 同时确保 gopls 在 PATH 环境变量中, 执行命令 `ln -s ~/go/bin/gopls ~/.local/bin`, 还要在补全之前执行 `go mod init` 命令                                      |
 | [hls](https://github.com/haskell/haskell-language-server)                                          | Haskell                                 |                                                                                                                                                                                                                          |
 | [dart-analysis-server](https://github.com/dart-lang/sdk/tree/master/pkg/analysis_server)           | Dart                                    |                                                                                                                                                                                                                          |
@@ -309,7 +320,7 @@ lsp-bridge 每种语言的服务器配置存储在[lsp-bridge/langserver](https:
 下面是 lsp-bridge 项目的目录结构：
 
 | 文件名                              | 作用                                                                                                              |
-| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------- |
+|:------------------------------------|:------------------------------------------------------------------------------------------------------------------|
 | lsp-bridge.el                       | lsp-bridge 的 Elisp 主逻辑部分，提供自定义选项和 Elisp 函数供 python 子进程调用，比如代码跳转、重命名等           |
 | lsp-bridge-epc.el                   | 和 lsp-bridge python 子进程通讯的代码，主要实现 Elisp IPC 来对接 Python EPC, 实现数据序列化、发送、接收和反序列化 |
 | lsp-bridge-call-hierarchy.el        | 在弹出 Frame 中显示代码的调用顺序关系                                                                             |
@@ -327,6 +338,7 @@ lsp-bridge 每种语言的服务器配置存储在[lsp-bridge/langserver](https:
 | core/mergedeep.py                   | JSON 信息合并， 主要用于发送自定义选项给 LSP 服务器                                                               |
 | core/hanlder/                       | LSP 消息发送和接受的实现，其中 `__init__.py` 是基类                                                               |
 | core/tabnine.py                     | TabNine 后端搜索和补全                                                                                            |
+| core/codeium.py                     | Codeium 后端搜索和补全                                                                                            |
 | core/search_file_words.py           | 文件单词异步搜索后端                                                                                              |
 | core/search_paths.py                | 文件路径异步搜索后端                                                                                              |
 | core/search_sdcv_words.py           | 英文单词搜索后端，可更换为其他语言的 StarDict 词典                                                                |

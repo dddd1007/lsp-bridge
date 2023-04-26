@@ -1,4 +1,5 @@
-English | [简体中文](./README.zh-CN.md)
+<p align="left">
+<a href="https://github.com/manateelazycat/lsp-bridge/actions/workflows/test.yml"><img src="https://github.com/manateelazycat/lsp-bridge/actions/workflows/test.yml/badge.svg"/></a> <a href ="https://github.com/manateelazycat/lsp-bridge/blob/master/README.zh-CN.md"><img src="https://img.shields.io/badge/README-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-555555.svg"/></a>
 
 # lsp-bridge
 
@@ -16,8 +17,12 @@ Using Python multithreading techniques, lsp-bridge builds a high-speed cache bet
 
 ## Installation
 
-1. Install Emacs version 28 or higher.
-2. Install Python dependencies: `pip3 install epc orjson sexpdata six paramiko` (orjson is optional, based on Rust, providing faster JSON parsing performance; paramiko is only needed when you need remote editing functionality)
+1. Install Emacs version 28 or above.
+2. Install Python dependencies: epc, orjson, sexpdata, six, paramiko. Please choose one of the following ways to install Python dependencies:
+- PyPy (We strongly recommend using PyPy instead of CPython to get a 5x performance boost):
+`pypy3 -m pip install epc sexpdata six paramiko`
+- CPython:
+`pip3 install epc orjson sexpdata six paramiko` (orjson is optional. It is based on Rust and provides faster JSON parsing performance)
 3. Install Elisp dependencies:
 
 - [posframe](https://github.com/tumashu/posframe)
@@ -58,7 +63,7 @@ It should be noted that lsp-bridge has three scanning modes:
 `lsp-bridge` can also provide code syntax completion for files on a remote server, similar to VSCode. Providing remote code completion is very useful when dealing with large and complex software that requires high resource demands or has complex environment configuration. The following are the steps to configure remote code completion:
 
 1. Install `lsp-bridge` and the corresponding LSP server on the remote server.
-2. Start `lsp-bridge` service: `python3 lsp-bridge/lsp_bridge.py`.
+2. Start the lsp-bridge service: `pypy3 lsp-bridge/lsp_bridge.py` (If you are using CPython, please use `python3 lsp-bridge/lsp_bridge.py`)
 3. Use the command `lsp-bridge-open-remote-file` to open the remote file and enter the username, server IP, ssh port (default: 22), and file path, such as `user@ip:[ssh_port]/path/file`.
 
 Once the remote file is opened, `lsp-bridge` will automatically display the code completion menu. The remote completion principle of `lsp-bridge` is as follows:
@@ -126,6 +131,7 @@ If the completion menu does not appear, log in to the remote server and check th
 ## LSP server options
 
 - `lsp-bridge-c-lsp-server`: C language server, you can choose `clangd` or`ccls`
+- `lsp-bridge-elixir-lsp-server`: Elixir language server, you can choose `elixirLS`(default) or`lexical`
 - `lsp-bridge-python-lsp-server`: Python language server, you can choose `pyright`, `jedi`, `python-ms`, `pylsp`, `ruff`
 - `lsp-bridge-php-lsp-server`: PHP language server, you can choose `intelephense` or `phpactor`
 - `lsp-bridge-tex-lsp-server`: LaTeX language server, you can choose `texlab` or`digestif`
@@ -163,6 +169,7 @@ If the completion menu does not appear, log in to the remote server and check th
 - `acm-enable-doc-markdown-render`: Richly render Markdown for completion popups, you can choose `'async`, `t` or `nil`. When set to `'async`, styles are applied asynchronously, choose `t`, styles are applied synchronously and will slow down the completion speed, default is `async`
 - `acm-enable-icon`: Whether the complete menu shows the icon, macOS users need to add option `--with-rsvg` to the brew command to install emacs to display SVG icon
 - `acm-enable-tabnine`: Enable tabnine support， enable by default，when enable need execute `lsp-bridge-install-tabnine` command to install TabNine, and it can be used. TabNine will consume huge CPUs, causing your entire computer to be slow. If the computer performance is not good, it is not recommended to enable this option
+- `acm-enable-codeium`: Enable Codeium support, when enable need execute `lsp-bridge-install-update-codeium` command to install Codeium, then execute `lsp-bridge-codeium-auth` command to get auth token and execute `lsp-bridge-codeium-input-auth-token` command to get API Key, and it can be used.
 - `acm-enable-search-file-words`: Whether the complete menu display the word of the file, enable by default
 - `acm-enable-quick-access`: Whether the index is displayed behind the icon, you can quickly select the candidate through Alt + Number, disable by default
 - `acm-enable-yas`: yasnippet completion, enable by default
@@ -170,7 +177,11 @@ If the completion menu does not appear, log in to the remote server and check th
 - `acm-doc-frame-max-lines`: Max line number of help documentation, default is 20
 - `acm-candidate-match-function`: The complete menu matching algorithm, the algorithm prefix of orderless-\* needs to be installed additional [orderless](https://github.com/oantolin/orderless)
 - `acm-completion-backend-merge-order`: Display order of completion backends. By default, multiple completion backends are merged in the order of LSP, Templates, and TabNine, and then the remaining templates and LSP completion options are displayed. You can adjust the order of completion back-end merging according to your needs
-- `acm-backend-lsp-candidate-min-length`: The minimum characters to trigger completion, default is 0
+- `acm-backend-lsp-candidate-min-length`: The minimum characters to trigger lsp completion, default is 0
+- `acm-backend-elisp-candidate-min-length`: The minimum characters to trigger elisp completion, default is 0
+- `acm-backend-yas-candidate-min-length`: The minimum characters to trigger yasnippet completion, default is 0
+- `acm-backend-search-file-words-candidate-min-length`: The minimum characters to trigger search file words completion, default is 0
+- `acm-backend-codeium-candidate-min-length`: The minimum characters to trigger codeium completion, default is 0
 - `acm-backend-lsp-enable-auto-import`: automatic insert import code, enable by default
 - `acm-backend-lsp-candidate-max-length`: Maximum length of LSP candidate, some language, such as Java, argument list is very long, you can increase the value of this option to see clear argument list
 - `acm-backend-yas-candidates-number`: yasnippet display number，2 by default
@@ -238,7 +249,7 @@ We welcome patches to help us support more LSP servers. Thank you for your help!
 You need to install the LSP server corresponding to each programming language, then lsp-bridge can provide code completion service.
 
 | LSP Server                                                                                         | Language                                | Note                                                                                                                                                                                                                                                               |
-| :------------------------------------------------------------------------------------------------- | :-------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|:---------------------------------------------------------------------------------------------------|:----------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [clangd](https://github.com/clangd/clangd)                                                         | C, C++, Object-C                        | need you config compile_commands.json first                                                                                                                                                                                                                        |
 | [ccls](https://github.com/MaskRay/ccls)                                                            | C, C++, Object-C                        | `lsp-bridge-c-lsp-server` set to `ccls`, you need to configure compile_commands.json first                                                                                                                                                                         |
 | [pyright](https://github.com/microsoft/pyright)                                                    | Python                                  | `lsp-bridge-python-lsp-server` set to `pyright`, `pyright-background-analysis` is faster sometimes, but it can't response diagnostic informations                                                                                                                  |
@@ -249,6 +260,7 @@ You need to install the LSP server corresponding to each programming language, t
 | [solargraph](https://github.com/castwide/solargraph)                                               | Ruby                                    |                                                                                                                                                                                                                                                                    |
 | [rust-analyzer](https://github.com/rust-lang/rust-analyzer)                                        | Rust                                    |                                                                                                                                                                                                                                                                    |
 | [elixirLS](https://github.com/elixir-lsp/elixir-ls)                                                | Elixir                                  | Please ensure that the `elixir-ls` release directory is in your system PATH at first                                                                                                                                                                               |
+| [lexical](https://github.com/lexical-lsp/lexical)                                                  | Elixir                                  | Kindly make sure that the `lexical` release directory is included in your system's PATH and that `lexical` has been compiled using the same version of Elixir/Erlang as your project.                                                                              |
 | [gopls](https://github.com/golang/tools/tree/master/gopls)                                         | Go                                      | Make sure install [go-mode](https://github.com/dominikh/go-mode.el) and gopls in PATH, please do `ln -s ~/go/bin/gopls ~/.local/bin`, and do `go mod init` first                                                                                                   |
 | [hls](https://github.com/haskell/haskell-language-server)                                          | Haskell                                 |                                                                                                                                                                                                                                                                    |
 | [dart-analysis-server](https://github.com/dart-lang/sdk/tree/master/pkg/analysis_server)           | Dart                                    |                                                                                                                                                                                                                                                                    |
@@ -309,7 +321,7 @@ The following is the framework of lsp-bridge:
 The following is the directory structure of the lsp-bridge project:
 
 | File Name                           | Purpose                                                                                                                                                                                                      |
-| :---------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|:------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | lsp-bridge.el                       | The Elisp main logic part of lsp-bridge provides custom options and Elisp functions for python sub-processes to call, such as code jumps, renaming, etc.                                                     |
 | lsp-bridge-epc.el                   | The code that communicates with the lsp-bridge python sub-process, which mainly implements Elisp IPC to interface with Python EPC, implementing data serialization, sending, receiving, and deserialization. |
 | lsp-bridge-call-hierarchy.el        | Displays the code's call order relationship in a pop-up frame.                                                                                                                                               |
@@ -327,6 +339,7 @@ The following is the directory structure of the lsp-bridge project:
 | core/mergedeep.py                   | JSON information merge, mainly used to send custom options to LSP servers.                                                                                                                                   |
 | core/hanlder/                       | Implementation of LSP message sending and receiving, where `__init__.py` is the base class.                                                                                                                  |
 | core/tabnine.py                     | The backend searches and completes with TabNine.                                                                                                                                                             |
+| core/codeium.py                     | The backend searches and completes with Codeium.                                                                                                                                                             |
 | core/search_file_words.py           | Asynchronous search backend for file words.                                                                                                                                                                  |
 | core/search_paths.py                | Asynchronous search backend for file paths.                                                                                                                                                                  |
 | core/search_sdcv_words.py           | English word search backend, interchangeable with other language's StarDict dictionaries.                                                                                                                    |
