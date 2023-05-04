@@ -4,6 +4,8 @@
 
 ;;; Code:
 
+(require 'array)
+
 (defgroup acm-backend-codeium nil
   "ACM codeium support."
   :group 'acm)
@@ -17,6 +19,11 @@
   "Minimal length of candidate."
   :type 'integer
   :group 'acm-backend-codeium)
+
+(defcustom acm-backend-codeium-candidate-max-length 40
+  "Maximal length of candidate."
+  :type 'integer
+  :group 'acm-backend-lsp)
 
 (defcustom acm-backend-codeium-candidates-number 10
   "Maximal number of codeium candidate of menu."
@@ -33,8 +40,8 @@
   :type 'integer
   :group 'acm-backend-codeium)
 
-(defcustom acm-backend-codeium-api-key ""
-  "Codeium api key."
+(defcustom acm-backend-codeium-api-key-path (expand-file-name (concat user-emacs-directory (file-name-as-directory "lsp-bridge") "codeium_api_key.txt"))
+  "The path to store Codeium API Key."
   :type 'string
   :group 'acm-backend-codeium)
 
@@ -149,12 +156,18 @@
     acm-backend-codeium-items))
 
 (defun acm-backend-codeium-candidate-expand (candidate-info _)
-  ;; We need replace whole line of current point with codeium label.
-  (delete-region (line-beginning-position) (line-end-position))
+  ;; We need replace whole area with codeium label.
+  (let ((end-position (line-end-position)))
+    (forward-line (- (plist-get candidate-info :line) (array-current-line)))
+    (delete-region (point) end-position))
   (insert (plist-get candidate-info :label))
 
   (when acm-backend-codeium-accept
-    (lsp-bridge-call-async "codeium_completion_accept" (plist-get candidate-info :id))))
+    (lsp-bridge-call-async
+     "codeium_completion_accept" (plist-get candidate-info :id))))
+
+(defun acm-backend-codeium-candidate-doc (candidate)
+  (plist-get candidate :documentation))
 
 (defun acm-backend-codeium-clean ()
   (setq-local acm-backend-codeium-items nil))

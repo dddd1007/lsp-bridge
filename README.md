@@ -17,12 +17,12 @@ Using Python multithreading techniques, lsp-bridge builds a high-speed cache bet
 
 ## Installation
 
-1. Install Emacs version 28 or above.
-2. Install Python dependencies: epc, orjson, sexpdata, six, paramiko. Please choose one of the following ways to install Python dependencies:
-- PyPy (We strongly recommend using PyPy instead of CPython to get a 5x performance boost):
+1. Install Emacs 28 or higher version
+2. Install Python dependencies: epc, orjson, sexpdata, six, paramiko, please choose one of the following methods to install Python dependencies
+- PyPy (On Linux, we strongly recommend using PyPy instead of CPython for a 5x performance boost):
 `pypy3 -m pip install epc sexpdata six paramiko`
-- CPython:
-`pip3 install epc orjson sexpdata six paramiko` (orjson is optional. It is based on Rust and provides faster JSON parsing performance)
+- CPython: (Windows and MacOS users please use CPython)
+`pip3 install epc orjson sexpdata six paramiko` (orjson is optional, orjson is based on Rust, providing faster JSON parsing performance)
 3. Install Elisp dependencies:
 
 - [posframe](https://github.com/tumashu/posframe)
@@ -74,30 +74,32 @@ Once the remote file is opened, `lsp-bridge` will automatically display the code
 
 If the completion menu does not appear, log in to the remote server and check the terminal output of `lsp_bridge.py`. Generally, incomplete installation of the service-side LSP server is the cause.
 
+lsp-bridge first looks for the content of the first *.pub file in the `~/.ssh` directory as the public key credential for logging into the remote server. If public key login fails, the user will be prompted to enter the login password. lsp-bridge does not store the server login password in a file. To avoid repeatedly entering the password, it is recommended that you use the public key method to log in to the remote server.
+
 ## Keymap
 
-| Key          | Command                   | Description                                                                  |
-| :----------- | :------------------------ | :--------------------------------------------------------------------------- |
-| Alt + n      | acm-select-next           | Select next candidate                                                        |
-| Down         | acm-select-next           | Select next candidate                                                        |
-| Alt + p      | acm-select-prev           | Select previous candidate                                                    |
-| Up           | acm-select-prev           | Select previous candidate                                                    |
-| Alt + ,      | acm-select-last           | Select last candidate                                                        |
-| Alt + .      | acm-select-first          | Select first candidate                                                       |
-| Ctrl + v     | acm-select-next-page      | Select next page candidate                                                   |
-| Alt + v      | acm-select-prev-page      | Select previous page candidate                                               |
-| Ctrl + m     | acm-complete              | Complete completion                                                          |
-| Return       | acm-complete              | Complete completion                                                          |
-| Tab          | acm-complete              | Complete completion                                                          |
-| Alt + h      | acm-complete              | Complete completion                                                          |
-| Alt + H      | acm-insert-common         | Insert common part of candidates                                             |
-| Alt + u      | acm-filter                | Filter candidates with overlay string                                        |
-| Alt + d      | acm-doc-toggle            | Enable or disable candidate documentation                                    |
-| Alt + j      | acm-doc-scroll-up         | Scroll up candidate documentation                                            |
-| Alt + k      | acm-doc-scroll-down       | Scroll down candidate documentation                                          |
-| Alt + l      | acm-hide                  | Hide completion menu                                                         |
-| Ctrl + g     | acm-hide                  | Hide completion menu                                                         |
-| Alt + Number | acm-complete-quick-access | Selecting candidate quickly, you need enable `acm-enable-quick-access` first |
+| Key          | Command                   | Description                                                                                           |
+|:-------------|:--------------------------|:------------------------------------------------------------------------------------------------------|
+| Alt + n      | acm-select-next           | Select next candidate                                                                                 |
+| Down         | acm-select-next           | Select next candidate                                                                                 |
+| Alt + p      | acm-select-prev           | Select previous candidate                                                                             |
+| Up           | acm-select-prev           | Select previous candidate                                                                             |
+| Alt + ,      | acm-select-last           | Select last candidate                                                                                 |
+| Alt + .      | acm-select-first          | Select first candidate                                                                                |
+| Ctrl + v     | acm-select-next-page      | Select next page candidate                                                                            |
+| Alt + v      | acm-select-prev-page      | Select previous page candidate                                                                        |
+| Ctrl + m     | acm-complete              | Complete completion                                                                                   |
+| Return       | acm-complete              | Complete completion                                                                                   |
+| Tab          | acm-complete              | Complete completion                                                                                   |
+| Alt + h      | acm-complete              | Complete completion                                                                                   |
+| Alt + H      | acm-insert-common         | Insert common part of candidates                                                                      |
+| Alt + u      | acm-filter                | Perform secondary filtering on candidate words, improving the selection efficiency of candidate words |
+| Alt + d      | acm-doc-toggle            | Enable or disable candidate documentation                                                             |
+| Alt + j      | acm-doc-scroll-up         | Scroll up candidate documentation                                                                     |
+| Alt + k      | acm-doc-scroll-down       | Scroll down candidate documentation                                                                   |
+| Alt + l      | acm-hide                  | Hide completion menu                                                                                  |
+| Ctrl + g     | acm-hide                  | Hide completion menu                                                                                  |
+| Alt + Number | acm-complete-quick-access | Selecting candidate quickly, you need enable `acm-enable-quick-access` first                          |
 
 ## Commands
 
@@ -124,9 +126,6 @@ If the completion menu does not appear, log in to the remote server and check th
 - `lsp-bridge-popup-complete-menu`: Manually popup the completion menu, you only need this command when turn on option `lsp-bride-complete-manually`
 - `lsp-bridge-restart-process`: restart lsp-bridge process (only used for development)
 - `lsp-bridge-toggle-sdcv-helper`: Switch dictionary completion assistant
-- `acm-insert-common`: insert common prefix of candidates
-- `acm-doc-scroll-up`: API document window scroll up
-- `acm-doc-scroll-down`: API document window scroll down
 
 ## LSP server options
 
@@ -157,7 +156,7 @@ If the completion menu does not appear, log in to the remote server and check th
 - `lsp-bridge-signature-show-function`: The function used for displaying signature info, default show message in minibuffer, set `lsp-bridge-signature-posframe` to show signature info in frame
 - `lsp-bridge-completion-popup-predicates`: the predicate function for completion menu, completion menu popup after all the functions pass
 - `lsp-bridge-completion-stop-commands`: completion menu will not popup if these commands are executed
-- `lsp-bridge-completion-hide-characters`: completion menu will not popup when cursor after those characters
+- `lsp-bridge-completion-hide-characters`: The default value is `'(":" ";" "(" ")" "[" "]" "{" "}" ", " "\"")`, the completion menu does not pop up when the cursor is behind these characters. You can customize this option to remove this restriction, or call the `lsp-bridge-popup-complete-menu` command to force the menu to pop up
 - `lsp-bridge-user-langserver-dir`: the dir where user place langserver configuration file, if the configuration file name in the dir is the same as that in [lsp-bridge/langserver](https://github.com/manateelazycat/lsp-bridge/tree/master/langserver) , lsp-bridge will use the configuration file in this dir
 - `lsp-bridge-user-multiserver-dir`: the dir where user place multiserver configuration file, if the configuration file name in the dir is the same as that in [lsp-bridge/multiserver](https://github.com/manateelazycat/lsp-bridge/tree/master/multiserver) , lsp-bridge will use the configuration file in this dir
 - `lsp-bridge-symbols-enable-which-func`: Using lsp backend for `which-func`, disable by default
@@ -168,7 +167,7 @@ If the completion menu does not appear, log in to the remote server and check th
 - `acm-enable-doc`: Whether the complete menu display the help document
 - `acm-enable-doc-markdown-render`: Richly render Markdown for completion popups, you can choose `'async`, `t` or `nil`. When set to `'async`, styles are applied asynchronously, choose `t`, styles are applied synchronously and will slow down the completion speed, default is `async`
 - `acm-enable-icon`: Whether the complete menu shows the icon, macOS users need to add option `--with-rsvg` to the brew command to install emacs to display SVG icon
-- `acm-enable-tabnine`: Enable tabnine support， enable by default，when enable need execute `lsp-bridge-install-tabnine` command to install TabNine, and it can be used. TabNine will consume huge CPUs, causing your entire computer to be slow. If the computer performance is not good, it is not recommended to enable this option
+- `acm-enable-tabnine`: Enable tabnine support， enable by default， when enable need execute `lsp-bridge-install-tabnine` command to install TabNine, and it can be used. TabNine will consume huge CPUs, causing your entire computer to be slow. If the computer performance is not good, it is not recommended to enable this option
 - `acm-enable-codeium`: Enable Codeium support, when enable need execute `lsp-bridge-install-update-codeium` command to install Codeium, then execute `lsp-bridge-codeium-auth` command to get auth token and execute `lsp-bridge-codeium-input-auth-token` command to get API Key, and it can be used.
 - `acm-enable-search-file-words`: Whether the complete menu display the word of the file, enable by default
 - `acm-enable-quick-access`: Whether the index is displayed behind the icon, you can quickly select the candidate through Alt + Number, disable by default
@@ -184,7 +183,7 @@ If the completion menu does not appear, log in to the remote server and check th
 - `acm-backend-codeium-candidate-min-length`: The minimum characters to trigger codeium completion, default is 0
 - `acm-backend-lsp-enable-auto-import`: automatic insert import code, enable by default
 - `acm-backend-lsp-candidate-max-length`: Maximum length of LSP candidate, some language, such as Java, argument list is very long, you can increase the value of this option to see clear argument list
-- `acm-backend-yas-candidates-number`: yasnippet display number，2 by default
+- `acm-backend-yas-candidates-number`: yasnippet display number， 2 by default
 - `acm-backend-citre-keyword-complete`: Completion is performed according to the keywords of each mode defined by `acm-backend-citre-keywords-alist`, which takes effect only after citre is enabled.
 - `acm-backend-search-sdcv-words-dictionary`: StarDict dictionary for word completion, default is `kdic-ec-11w`, you can replace it with StarDict dictionary path, example, if you have dictionary `/usr/share/stardict/dic/stardict-oxford-gb-formated-2.4.2/oxford-gb-formated.ifo`, you need set this value to `/usr/share/stardict/dic/stardict-oxford-gb-formated-2.4.2/oxford-gb-formated`, not include `.ifo` extension.
 
@@ -256,7 +255,7 @@ You need to install the LSP server corresponding to each programming language, t
 | [jedi](https://github.com/pappasam/jedi-language-server)                                           | Python                                  | `lsp-bridge-python-lsp-server` set to `jedi`                                                                                                                                                                                                                       |
 | [python-ms](https://github.com/microsoft/python-language-server)                                   | Python                                  | Legacy language server for Python2                                                                                                                                                                                                                                 |
 | [pylsp](https://github.com/python-lsp/python-lsp-server)                                           | Python                                  | `lsp-bridge-python-lsp-server` set to `pylsp`                                                                                                                                                                                                                      |
-| [ruff](https://github.com/charliermarsh/ruff-lsp)                                                  | Python                                  | `pip install ruff-lsp`,`lsp-bridge-python-lsp-server` is set to `ruff`, which only has the function of linter. If you need to complete the functions, install other Python language servers, and set the `lsp-bridge-python-multi-lsp-server` to `[LSP NAME]_ruff` |
+| [ruff](https://github.com/charliermarsh/ruff-lsp)                                                  | Python                                  | `pip install ruff-lsp`, `lsp-bridge-python-lsp-server` is set to `ruff`, which only has the function of linter. If you need to complete the functions, install other Python language servers, and set the `lsp-bridge-python-multi-lsp-server` to `[LSP NAME]_ruff` |
 | [solargraph](https://github.com/castwide/solargraph)                                               | Ruby                                    |                                                                                                                                                                                                                                                                    |
 | [rust-analyzer](https://github.com/rust-lang/rust-analyzer)                                        | Rust                                    |                                                                                                                                                                                                                                                                    |
 | [elixirLS](https://github.com/elixir-lsp/elixir-ls)                                                | Elixir                                  | Please ensure that the `elixir-ls` release directory is in your system PATH at first                                                                                                                                                                               |
@@ -309,6 +308,7 @@ You need to install the LSP server corresponding to each programming language, t
 | [julials](https://github.com/julia-vscode/LanguageServer.jl)                                       | Julia                                   |                                                                                                                                                                                                                                                                    |
 | [typst-lsp](https://github.com/nvarner/typst-lsp)                                                  | Typst                                   |                                                                                                                                                                                                                                                                    |
 | [verible](https://github.com/chipsalliance/verible)                                                | Verilog                                 |                                                                                                                                                                                                                                                                    |
+| [move-analyzer](https://github.com/move-language/move)                                             | Move                                    | The `move-analyzer` is included in the move language repository                                                                                                                                                                                                    |
 
 ## Join development
 
