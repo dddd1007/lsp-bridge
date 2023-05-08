@@ -1618,14 +1618,7 @@ So we build this macro to restore postion after code format."
                    :max-height lsp-bridge-lookup-doc-tooltip-max-height)))
 
 (defun lsp-bridge-hide-doc-tooltip ()
-  (posframe-hide lsp-bridge-lookup-doc-tooltip)
-
-  (when acm-markdown-render-background
-    (set-face-background 'markdown-code-face acm-markdown-render-background)
-    (setq acm-markdown-render-background nil))
-
-  (when acm-markdown-render-height
-    (set-face-attribute 'markdown-code-face nil :height acm-markdown-render-height)))
+  (posframe-hide lsp-bridge-lookup-doc-tooltip))
 
 (defvar lsp-bridge-signature-posframe-params
   (list :poshandler #'posframe-poshandler-point-bottom-left-corner-upward
@@ -2069,32 +2062,31 @@ SymbolKind (defined in the LSP)."
 
 (defun lsp-bridge-codeium-complete ()
   (interactive)
-  (let ((before-text (buffer-substring-no-properties (point-min) (point)))
-        (all-text (buffer-substring-no-properties (point-min) (point-max))))
+  (let ((all-text (buffer-substring-no-properties (point-min) (point-max)))
+        (language
+         ;; https://github.com/Exafunction/codeium.el/blob/0240805690c685de9b75c953af2867b6fcc61208/codeium.el#L306
+         (let ((mode major-mode))
+           (while (not (alist-get mode acm-backend-codeium-language-alist))
+             (setq mode (get mode 'derived-mode-parent)))
+           (alist-get mode acm-backend-codeium-language-alist))))
     (if (lsp-bridge-is-remote-file)
         (lsp-bridge-remote-send-func-request "codeium_complete"
                                              (list
-                                              (length (encode-coding-string before-text 'utf-8))
+                                              (1- (point))
                                               (symbol-name major-mode)
                                               tab-width
                                               all-text
                                               (not indent-tabs-mode)
-                                              ;; https://github.com/Exafunction/codeium.el/blob/0240805690c685de9b75c953af2867b6fcc61208/codeium.el#L306
-                                              (let ((mode major-mode))
-                                                (while (not (alist-get mode acm-backend-codeium-language-alist))
-                                                  (setq mode (get mode 'derived-mode-parent)))
-                                                (alist-get mode acm-backend-codeium-language-alist))))
+                                              (acm-get-input-prefix)
+                                              language))
       (lsp-bridge-call-async "codeium_complete"
-                             (length (encode-coding-string before-text 'utf-8))
+                             (1- (point))
                              (symbol-name major-mode)
                              tab-width
                              all-text
                              (not indent-tabs-mode)
-                             ;; https://github.com/Exafunction/codeium.el/blob/0240805690c685de9b75c953af2867b6fcc61208/codeium.el#L306
-                             (let ((mode major-mode))
-                               (while (not (alist-get mode acm-backend-codeium-language-alist))
-                                 (setq mode (get mode 'derived-mode-parent)))
-                               (alist-get mode acm-backend-codeium-language-alist))))))
+                             (acm-get-input-prefix)
+                             language))))
 
 (defun lsp-bridge-search-backend--record-items (backend-name items)
   (pcase backend-name

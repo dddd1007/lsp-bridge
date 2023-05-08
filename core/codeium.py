@@ -23,6 +23,7 @@ import time
 import traceback
 import urllib.parse
 import urllib.request
+from distutils.version import StrictVersion
 
 from core.utils import *
 
@@ -36,17 +37,40 @@ class Codeium:
         self.is_run = False
         self.is_get_info = False
 
-        (self.api_key_path, ) = get_emacs_vars([
-            "acm-backend-codeium-api-key-path"
-        ])
+        (self.api_key_path,) = get_emacs_vars(["acm-backend-codeium-api-key-path"])
 
         self.server_port = ""
+        self.current_cussor_offset = 0
+
+        self.counter = 1
+        self.wait_request = []
 
     def complete(
-        self, cursor_offset, editor_language, tab_size, text, insert_spaces, language
+        self,
+        cursor_offset,
+        editor_language,
+        tab_size,
+        text,
+        insert_spaces,
+        prefix,
+        language,
     ):
         self.get_info()
         self.run_local_server()
+
+        # utf-8 cursor offset
+        cursor_offset = len(text[:cursor_offset].encode("utf-8", errors="ignore"))
+        self.current_cussor_offset = cursor_offset
+
+        for _ in self.wait_request:
+            self.metadata["request_id"] = self.wait_request.pop()
+            self.post_request(
+                self.make_url("CancelRequest"), {"metadata": self.metadata}
+            )
+
+        self.metadata["request_id"] = self.counter
+        self.wait_request.append(self.counter)
+        self.counter += 1
 
         data = {
             "metadata": self.metadata,
@@ -59,7 +83,12 @@ class Codeium:
             "editor_options": {"insert_spaces": insert_spaces, "tab_size": tab_size},
         }
 
-        self.dispatch(self.post_request(self.make_url("GetCompletions"), data))
+        self.dispatch(
+            self.post_request(self.make_url("GetCompletions"), data),
+            editor_language,
+            prefix,
+            cursor_offset,
+        )
 
     def accept(self, id):
         data = {"metadata": self.metadata, "completion_id": id}
@@ -98,35 +127,41 @@ class Codeium:
         self.is_get_info = False
         self.get_info()
 
-    def dispatch(self, data):
+    def dispatch(self, data, editor_language, prefix, cursor_offset=None):
+        if self.current_cussor_offset != cursor_offset:
+            # drop old completion items
+            return
+
         completion_candidates = []
 
         current_line = get_current_line()
 
         if "completionItems" in data:
+            language = editor_language.split("-")[0]
+
             for completion in data["completionItems"][: self.max_num_results - 1]:
                 label = completion["completion"]["text"]
-                document = ""
+                labels = label.strip().split("\n")
 
-                if len(label.split("\n")) > 1:
-                    # Truncate label if label is multi-line code.
-                    display_label = (
-                        label[: self.display_label_max_length] + " ..."
-                        if len(label) > self.display_label_max_length
-                        else label)
-                    document = label
-                else:
-                    # Display label is same as label if only one line return from codeium.
-                    display_label = label
+                document = f"```{language}\n{label}\n```" if len(labels) > 1 else ""
 
-                completionParts = completion.get("completionParts", [{}])[0]
+                display_label = labels[0]
+                if len(display_label) > self.display_label_max_length:
+                    if len(labels) > 1:
+                        display_label = (
+                            display_label[self.display_label_max_length - 4 :] + " ..."
+                        )
+                    elif display_label.startswith(prefix):
+                        display_label = display_label.replace(prefix, "... ", 1)
+
+                completion_parts = completion.get("completionParts", [{}])[0]
                 annotation = (
                     "Codeium"
-                    if "prefix" in completionParts or current_line == ""
+                    if "prefix" in completion_parts or current_line == ""
                     else "Replace"
                 )
 
-                if completionParts.get("type") == "COMPLETION_PART_TYPE_BLOCK":
+                if completion_parts.get("type") == "COMPLETION_PART_TYPE_BLOCK":
                     annotation = "Replace"
 
                 if label == current_line:
@@ -136,12 +171,12 @@ class Codeium:
                     "key": label,
                     "icon": "codeium",
                     "label": label,
-                    "display-label": display_label.split("\n")[0].strip(),
+                    "display-label": display_label,
                     "annotation": annotation,
                     "backend": "codeium",
                     "documentation": document,
                     "id": completion["completion"]["completionId"],
-                    "line": int(completionParts.get("line", 0)),
+                    "line": int(completion_parts.get("line", 0)),
                 }
 
                 completion_candidates.append(candidate)
@@ -163,18 +198,22 @@ class Codeium:
             message_emacs("Waiting for Codeium local server to start...")
 
             self.manager_dir = tempfile.mkdtemp(prefix="codeium_")
+            params = [self.path, "--manager_dir", self.manager_dir]
 
-            process = subprocess.Popen(
-                [
-                    self.path,
+            if StrictVersion(self.VERSION) > StrictVersion("1.2.13"):
+                params += [
+                    "--api_server_url",
+                    f"https://{self.api_server_host}:{str(self.api_server_port)}",
+                ]
+            else:
+                params += [
                     "--api_server_host",
                     self.api_server_host,
                     "--api_server_port",
                     str(self.api_server_port),
-                    "--manager_dir",
-                    self.manager_dir,
                 ]
-            )
+
+            process = subprocess.Popen(params)
 
             self.get_server_port()
         except:
@@ -189,21 +228,25 @@ class Codeium:
         if self.is_get_info:
             return
 
-        (EMACS_VERSION,
-         VERSION,
-         self.api_server_host,
-         self.api_server_port,
-         self.folder,
-         self.max_num_results,
-         self.display_label_max_length) = get_emacs_vars(
-            ["emacs-version",
-             "codeium-bridge-binary-version",
-             "acm-backend-codeium-api-server-host",
-             "acm-backend-codeium-api-server-port",
-             "codeium-bridge-folder",
-             "acm-backend-codeium-candidates-number",
-             "acm-backend-codeium-candidate-max-length"
-            ])
+        (
+            EMACS_VERSION,
+            self.VERSION,
+            self.api_server_host,
+            self.api_server_port,
+            self.folder,
+            self.max_num_results,
+            self.display_label_max_length,
+        ) = get_emacs_vars(
+            [
+                "emacs-version",
+                "codeium-bridge-binary-version",
+                "acm-backend-codeium-api-server-host",
+                "acm-backend-codeium-api-server-port",
+                "codeium-bridge-folder",
+                "acm-backend-codeium-candidates-number",
+                "acm-backend-codeium-candidate-max-length",
+            ]
+        )
 
         # Try read API_KEY from config file.
         API_KEY = ""
@@ -213,7 +256,7 @@ class Codeium:
 
         self.metadata = {
             "api_key": API_KEY,
-            "extension_version": VERSION,
+            "extension_version": self.VERSION,
             "ide_name": "emacs",
             "ide_version": EMACS_VERSION,
         }

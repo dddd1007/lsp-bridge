@@ -20,7 +20,7 @@
   :type 'integer
   :group 'acm-backend-codeium)
 
-(defcustom acm-backend-codeium-candidate-max-length 40
+(defcustom acm-backend-codeium-candidate-max-length 100
   "Maximal length of candidate."
   :type 'integer
   :group 'acm-backend-lsp)
@@ -158,7 +158,7 @@
 (defun acm-backend-codeium-candidate-expand (candidate-info _)
   ;; We need replace whole area with codeium label.
   (let ((end-position (line-end-position)))
-    (forward-line (- (plist-get candidate-info :line) (array-current-line)))
+    (forward-line (- (plist-get candidate-info :line) (count-lines (point-min) (line-beginning-position))))
     (delete-region (point) end-position))
   (insert (plist-get candidate-info :label))
 
