@@ -260,7 +260,7 @@ def get_command_result(command_string, cwd):
 
     process = subprocess.Popen(command_string, cwd=cwd, shell=True, text=True,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                               encoding="utf-8")
+                               encoding="utf-8", errors="replace")
     ret = process.wait()
     return "".join((process.stdout if ret == 0 else process.stderr).readlines()).strip()    # type: ignore
 
@@ -438,6 +438,17 @@ def touch(path):
 
         with open(path, 'a'):
             os.utime(path)
+
+def rebuild_content_from_diff(content, start_pos, end_pos, change_text):
+    start_line = start_pos['line']
+    start_char = start_pos['character']
+    end_line = end_pos['line']
+    end_char = end_pos['character']
+
+    start_pos = get_position(content, start_line, start_char)
+    end_pos = get_position(content, end_line, end_char)
+
+    return content[:start_pos] + change_text + content[end_pos:]
 
 class MessageSender(Thread):
 

@@ -93,12 +93,19 @@
   :type 'integer
   :group 'acm-backend-search-file-words)
 
+(defcustom acm-backend-search-file-words-max-number 10
+  "Max number of candidate number."
+  :type 'integer
+  :group 'acm-backend-search-file-words)
+
 (defcustom acm-enable-search-file-words t
   "Popup search words completions when this option is turn on."
   :type 'boolean
   :group 'acm-backend-search-file-words)
 
 (defvar-local acm-backend-search-file-words-items nil)
+
+(defvar acm-backend-search-file-words-bound-regex "^[\"' ]")
 
 (defun acm-backend-search-file-words-candidates (keyword)
   (when (and acm-enable-search-file-words
@@ -113,15 +120,18 @@
              :backend "search-file-words"))
      acm-backend-search-file-words-items)))
 
-(defun acm-backend-search-file-words-candidate-expand (candidate-info bound-start)
-  (if (acm-is-elisp-mode-p)
-      (delete-region (car (bounds-of-thing-at-point 'symbol)) (point))
-    (delete-region
-     (save-excursion
-       (skip-syntax-backward "^ " (line-beginning-position))
-       (point))
-     (point)))
-  (insert (plist-get candidate-info :label)))
+(defun acm-backend-search-file-words-candidate-expand (candidate-info bound-start &optional preview)
+  (let ((beg (if (acm-is-elisp-mode-p)
+                 (car (bounds-of-thing-at-point 'symbol))
+               (save-excursion
+                 (skip-syntax-backward acm-backend-search-file-words-bound-regex (line-beginning-position))
+                 (point))))
+        (end (point))
+        (cand (plist-get candidate-info :label)))
+    (if preview
+        (acm-preview-create-overlay beg end cand)
+      (delete-region beg end)
+      (insert cand))))
 
 (defun acm-backend-search-file-words-get-point-string ()
   "Get string around point."
@@ -129,10 +139,10 @@
       (or (thing-at-point 'symbol t) "")
     (buffer-substring-no-properties
      (save-excursion
-       (skip-syntax-backward "^ " (line-beginning-position))
+       (skip-syntax-backward acm-backend-search-file-words-bound-regex (line-beginning-position))
        (point))
      (save-excursion
-       (skip-syntax-forward "^ " (line-end-position))
+       (skip-syntax-forward acm-backend-search-file-words-bound-regex (line-end-position))
        (point))
      )))
 
